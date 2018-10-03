@@ -64,9 +64,9 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   };
 
   private activeSplitter: any;
-  private splitters: any[];
+  private splitters: { ref: HTMLDivElement, dimensions: ClientRect }[];
   private splitNum: number;
-  private panes: any[];
+  private panes: { size: number, ref: Element }[];
   private paneNum: number;
   private containerSize: number;
   private containerRef: HTMLElement;
@@ -74,22 +74,11 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   constructor(props: SplitterProps, context: SplitterState) {
     super(props, context);
 
-    this.saveContainerRef = this.saveContainerRef.bind(this);
-    this.saveSplitterRef = this.saveSplitterRef.bind(this);
-    this.savePaneRef = this.savePaneRef.bind(this);
-
-    this.onGrabSplitter = this.onGrabSplitter.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseUp = this.onMouseUp.bind(this);
-    this.checkForContainerResize = this.checkForContainerResize.bind(this);
-
     this.activeSplitter = null;
 
-    // [{ ref: splitterRef, dimensions: ref.getBoundingClientRect() }]
     this.splitters = [];
     this.splitNum = 0;
 
-    // [{ size: num, ref: paneRef }]
     this.panes = [];
     this.paneNum = 0;
 
@@ -211,22 +200,22 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.setState(({ paneSizes: currentPaneSizes }));
   }
 
-  saveContainerRef(element: HTMLElement): void {
+  saveContainerRef = (element: HTMLElement): void => {
     this.containerRef = element;
   }
 
-  saveSplitterRef(element: HTMLElement, index: number): void {
+  saveSplitterRef = (element: HTMLDivElement, index: number): void => {
     if (!this.splitters[index]) {
-      this.splitters[index] = {};
+      this.splitters[index] = { ref: null, dimensions: null };
     }
     this.splitters[index].ref = element;
   }
 
-  savePaneRef(element: SplitterPane, index: number): void {
+  savePaneRef = (element: SplitterPane, index: number): void => {
     if (!this.panes[index]) {
-      this.panes[index] = {};
+      this.panes[index] = { size: null, ref: null};
     }
-    this.panes[index].ref = ReactDom.findDOMNode(element);
+    this.panes[index].ref = ReactDom.findDOMNode(element) as HTMLDivElement;
   }
 
   onGrabSplitter(e: any, splitterIndex: number): void {
@@ -327,7 +316,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
 
       // add a pane
       if (!this.panes[paneIndex]) {
-        this.panes[paneIndex] = {};
+        this.panes[paneIndex] = { ref: null, size: null };
       }
       this.panes[paneIndex].size = this.state.paneSizes[paneIndex] || DEFAULT_PANE_SIZE;
       const pane = <SplitterPane key={ `pane${paneIndex}` } orientation={ this.props.orientation }
@@ -339,7 +328,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
       if (this.props.children[index + 1]) {
         // record which panes this splitter controls
         if (!this.splitters[splitIndex]) {
-          this.splitters[splitIndex] = {};
+          this.splitters[splitIndex] = { ref: null, dimensions: null };
         }
 
         const splitterCss = this.props.orientation === 'horizontal' ?
