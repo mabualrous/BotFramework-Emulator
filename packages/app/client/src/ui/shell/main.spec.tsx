@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { shallow } from 'enzyme';
-import { Main } from './main';
+import { MainComponent } from './main';
+
 function mockProxy() {
   return new Proxy({}, {
     get() {
@@ -8,10 +9,12 @@ function mockProxy() {
     }
   });
 }
+
 jest.mock('./main.scss', () => ({}));
 jest.mock('./explorer', () => mockProxy());
 jest.mock('./mdi', () => mockProxy());
 jest.mock('./navBar', () => mockProxy());
+jest.mock('./workbench', () => mockProxy());
 jest.mock('./statusBar/statusBar.scss', () => ({}));
 jest.mock('../debug/storeVisualizer.scss', () => ({}));
 jest.mock('../../ui/dialogs', () => ({
@@ -30,11 +33,12 @@ jest.mock('../../ui/dialogs', () => ({
     }
   }
 ));
+
 describe('The Main component', () => {
 
   it('should pass an empty test', () => {
-    const parent = shallow(<Main/>);
-    expect(parent.find(Main)).not.toBe(null);
+    const parent = shallow(<MainComponent/>);
+    expect(parent.find(MainComponent)).not.toBe(null);
   });
 
 });

@@ -31,6 +31,4 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-export * from './main';
-export * from './mainContainer';
-export * from './statusBar/statusBar';
+export * from './workbench';
