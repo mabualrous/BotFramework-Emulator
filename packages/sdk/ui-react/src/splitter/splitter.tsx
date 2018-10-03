@@ -51,6 +51,7 @@ export interface SplitterProps {
   onSizeChange?: (sizes: any[]) => any;
   orientation?: SplitterOrientation;
   primaryPaneIndex?: number;
+  id?: string;
 }
 
 export interface SplitterState {
@@ -73,6 +74,10 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
 
   constructor(props: SplitterProps, context: SplitterState) {
     super(props, context);
+
+    this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
+    this.checkForContainerResize = this.checkForContainerResize.bind(this);
 
     this.activeSplitter = null;
 
@@ -97,6 +102,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   }
 
   componentDidMount() {
+    console.log(`splitter ${this.props.id} did mount`);
     this.calculateInitialPaneSizes();
   }
 
@@ -134,7 +140,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     if (initialSizes) {
       // subtract initial sizes from container size and distribute the remaining size equally
       let remainingContainerSize = this.containerSize;
-      let defaultPanes = numberOfPanes;
+      let numberOfDefaultPanes = numberOfPanes;
       Object.keys(initialSizes).forEach(key => {
         // convert percentage to absolute value if necessary
         initialSizes[key] = typeof initialSizes[key] === 'string' ?
@@ -144,9 +150,9 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
           throw new Error(`Invalid value passed as element of initialSizes in Splitter: ${initialSizes[key]}`);
         }
         remainingContainerSize -= initialSizes[key];
-        defaultPanes--;
+        numberOfDefaultPanes--;
       });
-      defaultPaneSize = (remainingContainerSize - numberOfSplitters * SPLITTER_SIZE) / defaultPanes;
+      defaultPaneSize = (remainingContainerSize - numberOfSplitters * SPLITTER_SIZE) / numberOfDefaultPanes;
     } else {
       defaultPaneSize = (this.containerSize - numberOfSplitters * SPLITTER_SIZE) / numberOfPanes;
     }
@@ -304,6 +310,8 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   }
 
   render(): JSX.Element {
+    console.log(`splitter ${this.props.id} re-rendered`);
+
     // jam a splitter handle inbetween each pair of children
     const splitChildren = [];
     this.paneNum = this.splitNum = 0;

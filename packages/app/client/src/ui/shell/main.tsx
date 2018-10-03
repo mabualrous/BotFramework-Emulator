@@ -102,7 +102,8 @@ export class Main extends React.Component<MainProps, MainState> {
     }
 
     workbenchChildren.push(
-      <Splitter orientation={ 'vertical' } key={ 'tab-group-splitter' } minSizes={ { 0: 160, 1: 160 } }>
+      <Splitter orientation={ 'vertical' } key={ 'tab-group-splitter' } minSizes={ { 0: 160, 1: 160 } }
+        id="TAB GROUPS">
         { tabGroups }
       </Splitter>
     );
@@ -117,7 +118,7 @@ export class Main extends React.Component<MainProps, MainState> {
               orientation={ 'vertical' }
               primaryPaneIndex={ 0 }
               minSizes={ { 0: 175, 1: 40 } }
-              initialSizes={ { 0: 280 } }>
+              initialSizes={ { 0: 280 } } id="WORKBENCH">
               { workbenchChildren }
             </Splitter>
           </div>

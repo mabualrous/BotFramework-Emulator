@@ -264,7 +264,8 @@ class EmulatorComponent extends React.Component<EmulatorProps, {}> {
           <Splitter orientation="vertical" primaryPaneIndex={ 0 }
                     minSizes={ { 0: 80, 1: 80 } }
                     initialSizes={ this.getVerticalSplitterSizes }
-                    onSizeChange={ this.onVerticalSizeChange }>
+                    onSizeChange={ this.onVerticalSizeChange }
+                    id="WEBCHAT SPLITTER">
             <div className={ styles.content }>
               <ChatPanel mode={ this.props.mode }
                          className={ styles.chatPanel }
@@ -275,7 +276,8 @@ class EmulatorComponent extends React.Component<EmulatorProps, {}> {
               <Splitter orientation="horizontal" primaryPaneIndex={ 0 }
                         minSizes={ { 0: 80, 1: 80 } }
                         initialSizes={ this.getHorizontalSplitterSizes }
-                        onSizeChange={ this.onHorizontalSizeChange }>
+                        onSizeChange={ this.onHorizontalSizeChange }
+                        id="LOG/DETAIL SPLITTER">
                 <InspectorContainer document={ this.props.document }/>
                 <LogPanel document={ this.props.document }/>
               </Splitter>
