@@ -54,6 +54,8 @@ export interface SplitterProps {
 }
 
 export interface SplitterState {
+  activeSplitter: number;
+  activeChildren: any[];
   paneSizes?: number[];
   resizing?: boolean;
 }
@@ -63,7 +65,6 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     minSizes: {}
   };
 
-  private activeSplitter: any;
   private splitters: { ref: HTMLDivElement, dimensions: ClientRect }[];
   private splitNum: number;
   private panes: { size: number, ref: Element }[];
@@ -78,21 +79,24 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.onMouseUp = this.onMouseUp.bind(this);
     this.checkForContainerResize = this.checkForContainerResize.bind(this);
 
-    this.activeSplitter = null;
-
     this.splitters = [];
     this.splitNum = 0;
 
     this.panes = [];
     this.paneNum = 0;
 
+    const activeChildren = props.children.filter(child => !!child) || [];
+
     this.state = {
+      activeSplitter: null,
+      activeChildren,
       resizing: false,
       paneSizes: []
     };
   }
 
   public componentWillMount() {
+    console.log(`splitter ${this.props.id} did unmount`);
     // set up event listeners
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseup', this.onMouseUp);
@@ -231,16 +235,15 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     clearSelection();
     // cache splitter dimensions
     this.splitters[splitterIndex].dimensions = this.splitters[splitterIndex].ref.getBoundingClientRect();
-    this.activeSplitter = splitterIndex;
     // cache container size
     this.containerSize = this.getContainerSize();
-    this.setState(({ resizing: true }));
+    this.setState(({ resizing: true, activeSplitter: splitterIndex }));
   }
 
   public onMouseMove(e: any): void {
     if (this.state.resizing) {
       document.dispatchEvent(splitterResizeEvent);
-      this.calculatePaneSizes(this.activeSplitter, e);
+      this.calculatePaneSizes(this.state.activeSplitter, e);
       clearSelection();
     }
   }
@@ -265,7 +268,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
       return (this.panes[pane1Index].size = Math.max((e.clientX - pane1Dimensions.left),
         minSizes[pane1Index] || MIN_PANE_SIZE));
     };
-    let primarySize = splitterIsHorizontal ? getHorizontalPrimarySize() : getVerticalPrimarySize());
+    let primarySize = splitterIsHorizontal ? getHorizontalPrimarySize() : getVerticalPrimarySize();
 
     // the local container size will be the sum of the heights (horizontal)
     // or widths (vertical) of both panes and the splitter
@@ -312,8 +315,6 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   }
 
   public render(): JSX.Element {
-    console.log(`splitter ${this.props.id} re-rendered`);
-
     // jam a splitter handle inbetween each pair of children
     const splitChildren = [];
     this.paneNum = this.splitNum = 0;
