@@ -31,8 +31,11 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-.workbench {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+.mdi-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.secondary-mdi {
+  border-left: 1px solid var(--neutral-9);
 }

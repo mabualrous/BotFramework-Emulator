@@ -38,54 +38,47 @@ import { connect } from 'react-redux';
 import { RootState } from '../../../data/store';
 import { Editor } from '../../../data/reducer/editor';
 import * as Constants from '../../../constants';
-import { MDI } from '../mdi';
 import { ExplorerBar } from '../explorer/explorerBar/explorerBar';
+import { PrimaryTabGroup, SecondaryTabGroup } from '../tabGroups';
 
 // TODO: Re-enable once webchat reset bug is fixed
 // (https://github.com/Microsoft/BotFramework-Emulator/issues/825)
 // import store from '../../data/store';
 // import * as ExplorerActions from '../../data/action/explorerActions';
 
-export interface WorkbenchComponentProps {
+export interface WorkbenchProps {
   primaryEditor?: Editor;
   secondaryEditor?: Editor;
   explorerIsVisible?: boolean;
   presentationModeEnabled?: boolean;
 }
 
-class WorkbenchComponent extends React.Component<WorkbenchComponentProps, {}> {
-  constructor(props: WorkbenchComponentProps) {
+class WorkbenchComponent extends React.Component<WorkbenchProps, {}> {
+  constructor(props: WorkbenchProps) {
     super(props);
   }
 
   public render(): JSX.Element {
-    const tabGroup1 = this.props.primaryEditor &&
-      <div className={ styles.mdiWrapper } key={ 'primaryEditor' }>
-        <MDI owningEditor={ Constants.EDITOR_KEY_PRIMARY }/>
-      </div>;
-
-    const tabGroup2 = this.props.secondaryEditor && Object.keys(this.props.secondaryEditor.documents).length ?
-      <div className={ `${styles.mdiWrapper} ${styles.secondaryMdi}` } key={ 'secondaryEditor' }><MDI
-        owningEditor={ Constants.EDITOR_KEY_SECONDARY }/></div> : null;
-
-    // If falsy children aren't filtered out, splitter won't recognize change in number of children
+    /*// If falsy children aren't filtered out, splitter won't recognize change in number of children
     // (i.e. [child1, child2] -> [false, child2] is still seen as 2 children by the splitter)
     // TODO: Move this logic to splitter-side
-    const tabGroups = [tabGroup1, tabGroup2].filter(tG => !!tG);
+    const tabGroups = [tabGroup1, tabGroup2].filter(tG => !!tG);*/
 
     // Explorer & TabGroup(s) pane
-    const workbenchChildren = [];
-
-    if (this.props.explorerIsVisible && !this.props.presentationModeEnabled) {
-      workbenchChildren.push(<ExplorerBar key={ 'explorer-bar' }/>);
-    }
-
-    workbenchChildren.push(
+    const shouldShowExplorer = this.props.explorerIsVisible && !this.props.presentationModeEnabled;
+    const explorerBar =  shouldShowExplorer && <ExplorerBar key={ 'explorer-bar' }/>;
+    const tabGroups = (
       <Splitter orientation={ 'vertical' } key={ 'tab-group-splitter' } minSizes={ { 0: 160, 1: 160 } }
         id="TAB GROUPS">
-        { tabGroups }
+        <PrimaryTabGroup/>
+        <SecondaryTabGroup/>
       </Splitter>
     );
+
+    const workbenchContents = [
+      explorerBar,
+      tabGroups
+    ];
 
     return (
       <div className={ styles.workbench }>
@@ -94,7 +87,7 @@ class WorkbenchComponent extends React.Component<WorkbenchComponentProps, {}> {
           primaryPaneIndex={ 0 }
           minSizes={ { 0: 175, 1: 40 } }
           initialSizes={ { 0: 280 } } id="WORKBENCH">
-          { workbenchChildren }
+          { workbenchContents }
         </Splitter>
       </div>
     );
@@ -114,7 +107,7 @@ class WorkbenchComponent extends React.Component<WorkbenchComponentProps, {}> {
   }
 }*/
 
-function mapStateToprops(state: RootState): WorkbenchComponentProps {
+function mapStateToprops(state: RootState): WorkbenchProps {
   return {
     primaryEditor: state.editor.editors[Constants.EDITOR_KEY_PRIMARY],
     secondaryEditor: state.editor.editors[Constants.EDITOR_KEY_SECONDARY],

@@ -31,8 +31,40 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-.workbench {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+import * as React from 'react';
+import { connect } from 'react-redux';
+import { RootState } from '../../../data/store';
+import * as styles from './tabGroups.scss';
+import { Editor } from '../../../data/reducer/editor';
+import { MDI } from '../mdi';
+import * as Constants from '../../../constants';
+
+export interface SecondaryTabGroupProps {
+  secondaryEditor?: Editor;
 }
+
+class SecondaryTabGroupComponent extends React.Component<SecondaryTabGroupProps, {}> {
+  constructor(props: SecondaryTabGroupProps) {
+    super(props);
+  }
+
+  public render(): JSX.Element {
+    const tabGroupIsActive = this.props.secondaryEditor && Object.keys(this.props.secondaryEditor.documents).length;
+    const tabGroup = tabGroupIsActive ?
+      <div className={ `${styles.mdiWrapper} ${styles.secondaryMdi}` } key={ 'secondaryEditor' }>
+        <MDI owningEditor={ Constants.EDITOR_KEY_SECONDARY }/>
+      </div>
+      :
+      null;
+
+    return tabGroup;
+  }
+}
+
+function mapStateToprops(state: RootState): SecondaryTabGroupProps {
+  return {
+    secondaryEditor: state.editor.editors[Constants.EDITOR_KEY_SECONDARY],
+  };
+}
+
+export const SecondaryTabGroup = connect(mapStateToprops, null)(SecondaryTabGroupComponent);

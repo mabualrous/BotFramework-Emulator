@@ -31,8 +31,37 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-.workbench {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+import * as React from 'react';
+import { connect } from 'react-redux';
+import { RootState } from '../../../data/store';
+import * as styles from './tabGroups.scss';
+import { Editor } from '../../../data/reducer/editor';
+import { MDI } from '../mdi';
+import * as Constants from '../../../constants';
+
+export interface PrimaryTabGroupProps {
+  primaryEditor?: Editor;
 }
+
+class PrimaryTabGroupComponent extends React.Component<PrimaryTabGroupProps, {}> {
+  constructor(props: PrimaryTabGroupProps) {
+    super(props);
+  }
+
+  public render(): JSX.Element {
+    const tabGroup = this.props.primaryEditor &&
+      <div className={ styles.mdiWrapper } key={ 'primaryEditor' }>
+        <MDI owningEditor={ Constants.EDITOR_KEY_PRIMARY }/>
+      </div>;
+
+    return tabGroup;
+  }
+}
+
+function mapStateToprops(state: RootState): PrimaryTabGroupProps {
+  return {
+    primaryEditor: state.editor.editors[Constants.EDITOR_KEY_PRIMARY],
+  };
+}
+
+export const PrimaryTabGroup = connect(mapStateToprops, null)(PrimaryTabGroupComponent);

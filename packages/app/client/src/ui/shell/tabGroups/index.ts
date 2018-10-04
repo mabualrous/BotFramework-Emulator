@@ -31,8 +31,5 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-.workbench {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-}
+export * from './primaryTabGroup';
+export * from './secondaryTabGroup';
