@@ -65,6 +65,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   };
 
   private activeSplitter: any;
+  private activeChildren?: any[];
   private splitters: { ref?: HTMLDivElement, dimensions?: ClientRect }[];
   private splitNum: number;
   private panes: { size?: number, ref?: Element }[];
@@ -86,12 +87,15 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.checkForContainerResize = this.checkForContainerResize.bind(this);
 
     this.activeSplitter = null;
-
     this.splitters = [];
     this.splitNum = 0;
-
     this.panes = [];
     this.paneNum = 0;
+
+    // we only want to calculate pane sizes based on truthy children
+    const activeChildren = this.getActiveChildren();
+    this.activeChildren = activeChildren;
+    console.log(activeChildren.length + 'active children');
 
     this.state = {
       resizing: false,
@@ -108,7 +112,8 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
   }
 
   componentDidMount() {
-    this.calculateInitialPaneSizes();
+    const paneSizes = this.calculateInitialPaneSizes();
+    this.setState({ paneSizes });
   }
 
   componentWillUnmount() {
@@ -129,17 +134,21 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     console.log('VVVVVVVVVVVVVVVVVVVV');
     console.log(filteredNextChildren);
     // if the number of children changes, recalculate pane sizes
-    if (nextProps.children.length !== this.props.children.length) {
-      this.props.children.length = nextProps.children.length;
-      this.calculateInitialPaneSizes();
+    // if (nextProps.children.length !== this.props.children.length) {
+    if (filteredNextChildren.length !== filteredChildren.length) {
+      console.log('RE-CALCING FOR CHANGE IN CHILDREN');
+      // this.props.children.length = nextProps.children.length;
+      this.activeChildren = this.getActiveChildren();
+      const paneSizes = this.calculateInitialPaneSizes();
+      this.setState({ paneSizes });
     }
   }
 
-  calculateInitialPaneSizes(): void {
+  calculateInitialPaneSizes(): number[] {
     const currentPaneSizes = this.state.paneSizes;
     this.containerSize = this.getContainerSize();
 
-    const numberOfPanes = this.props.children.length;
+    const numberOfPanes = this.activeChildren.length; // this.props.children.length;
     const numberOfSplitters = numberOfPanes - 1;
 
     let defaultPaneSize;
@@ -178,7 +187,8 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
       }
     }
 
-    this.setState(({ paneSizes: currentPaneSizes }));
+    return currentPaneSizes;
+    // this.setState(({ paneSizes: currentPaneSizes }));
   }
 
   getContainerSize(): number {
@@ -328,7 +338,9 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     const splitChildren = [];
     this.paneNum = this.splitNum = 0;
 
-    this.props.children.forEach((child, index) => {
+    const activeChildren = this.getActiveChildren();
+
+    activeChildren.forEach((child, index) => {
       // take a 'snapshot' of the current indices or else
       // the elements will all use the same value once they are rendered
       const paneIndex = this.paneNum;
@@ -345,7 +357,8 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
       splitChildren.push(pane);
 
       // add a splitter if there is another child after this one
-      if (this.props.children[index + 1]) {
+      // if (this.props.children[index + 1]) {
+      if (activeChildren[index + 1]) {
         // record which panes this splitter controls
         if (!this.splitters[splitIndex]) {
           this.splitters[splitIndex] = {};
@@ -374,6 +387,11 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
         </div>
       </div>
     );
+  }
+
+  /** Returns truthy elements of this.props.children */
+  private getActiveChildren(): any[] {
+    return React.Children.toArray(this.props.children).filter(child => !!child);
   }
 }
 
