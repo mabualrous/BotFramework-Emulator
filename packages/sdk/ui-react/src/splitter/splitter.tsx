@@ -34,12 +34,13 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { SplitterPane } from './pane';
+
 import * as styles from './splitter.scss';
 
 const DEFAULT_PANE_SIZE = 200;
 const MIN_PANE_SIZE = 0;
 const SPLITTER_SIZE = 0;
-const splitterResizeEvent = new Event('splitterResize');
+const event = new Event('splitterResize');
 
 export type SplitterOrientation = 'horizontal' | 'vertical';
 
@@ -54,8 +55,6 @@ export interface SplitterProps {
 }
 
 export interface SplitterState {
-  activeSplitter: number;
-  activeChildren: any[];
   paneSizes?: number[];
   resizing?: boolean;
 }
@@ -65,19 +64,28 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     minSizes: {}
   };
 
-  private splitters: { ref: HTMLDivElement, dimensions: ClientRect }[];
+  private activeSplitter: any;
+  private splitters: { ref?: HTMLDivElement, dimensions?: ClientRect }[];
   private splitNum: number;
-  private panes: { size: number, ref: Element }[];
+  private panes: { size?: number, ref?: Element }[];
   private paneNum: number;
   private containerSize: number;
   private containerRef: HTMLElement;
 
   constructor(props: SplitterProps, context: SplitterState) {
     super(props, context);
+    console.log(`[${props.id}]: CONSTRUCTOR`);
+
+    this.saveContainerRef = this.saveContainerRef.bind(this);
+    this.saveSplitterRef = this.saveSplitterRef.bind(this);
+    this.savePaneRef = this.savePaneRef.bind(this);
+    this.onGrabSplitter = this.onGrabSplitter.bind(this);
 
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.checkForContainerResize = this.checkForContainerResize.bind(this);
+
+    this.activeSplitter = null;
 
     this.splitters = [];
     this.splitNum = 0;
@@ -85,18 +93,13 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.panes = [];
     this.paneNum = 0;
 
-    const activeChildren = props.children.filter(child => !!child) || [];
-
     this.state = {
-      activeSplitter: null,
-      activeChildren,
       resizing: false,
       paneSizes: []
     };
   }
 
-  public componentWillMount() {
-    console.log(`splitter ${this.props.id} did unmount`);
+  componentWillMount() {
     // set up event listeners
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseup', this.onMouseUp);
@@ -104,12 +107,11 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     window.addEventListener('resize', this.checkForContainerResize);
   }
 
-  public componentDidMount() {
-    console.log(`splitter ${this.props.id} did mount`);
+  componentDidMount() {
     this.calculateInitialPaneSizes();
   }
 
-  public componentWillUnmount() {
+  componentWillUnmount() {
     // remove event listeners
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseup', this.onMouseUp);
@@ -117,7 +119,15 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     window.removeEventListener('resize', this.checkForContainerResize);
   }
 
-  public componentWillReceiveProps(nextProps: SplitterProps) {
+  componentWillReceiveProps(nextProps: SplitterProps) {
+    console.log(`[${this.props.id}]: WRP`);
+    const children = React.Children.toArray(this.props.children);
+    const nextChildren = React.Children.toArray(nextProps.children);
+    const filteredChildren = children.filter(c => !!c);
+    const filteredNextChildren = nextChildren.filter(ch => !!ch);
+    console.log(filteredChildren);
+    console.log('VVVVVVVVVVVVVVVVVVVV');
+    console.log(filteredNextChildren);
     // if the number of children changes, recalculate pane sizes
     if (nextProps.children.length !== this.props.children.length) {
       this.props.children.length = nextProps.children.length;
@@ -125,7 +135,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     }
   }
 
-  public calculateInitialPaneSizes(): void {
+  calculateInitialPaneSizes(): void {
     const currentPaneSizes = this.state.paneSizes;
     this.containerSize = this.getContainerSize();
 
@@ -143,7 +153,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     if (initialSizes) {
       // subtract initial sizes from container size and distribute the remaining size equally
       let remainingContainerSize = this.containerSize;
-      let numberOfDefaultPanes = numberOfPanes;
+      let defaultPanes = numberOfPanes;
       Object.keys(initialSizes).forEach(key => {
         // convert percentage to absolute value if necessary
         initialSizes[key] = typeof initialSizes[key] === 'string' ?
@@ -153,9 +163,9 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
           throw new Error(`Invalid value passed as element of initialSizes in Splitter: ${initialSizes[key]}`);
         }
         remainingContainerSize -= initialSizes[key];
-        numberOfDefaultPanes--;
+        defaultPanes--;
       });
-      defaultPaneSize = (remainingContainerSize - numberOfSplitters * SPLITTER_SIZE) / numberOfDefaultPanes;
+      defaultPaneSize = (remainingContainerSize - numberOfSplitters * SPLITTER_SIZE) / defaultPanes;
     } else {
       defaultPaneSize = (this.containerSize - numberOfSplitters * SPLITTER_SIZE) / numberOfPanes;
     }
@@ -171,21 +181,17 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.setState(({ paneSizes: currentPaneSizes }));
   }
 
-  public getContainerSize(): number {
-    const { containerRef } = this;
-    const { orientation } = this.props;
-
-    if (containerRef) {
-      const containerDimensions = containerRef.getBoundingClientRect();
-      return orientation === 'horizontal' ? containerDimensions.height : containerDimensions.width;
+  getContainerSize(): number {
+    if (this.containerRef) {
+      const containerDimensions = this.containerRef.getBoundingClientRect();
+      return this.props.orientation === 'horizontal' ? containerDimensions.height : containerDimensions.width;
     }
     return null;
   }
 
-  public checkForContainerResize(): void {
-    const { primaryPaneIndex } = this.props;
+  checkForContainerResize(): void {
     // only recalculate secondary panes if there is a specified primary pane
-    if (primaryPaneIndex || (primaryPaneIndex === 0)) {
+    if (this.props.primaryPaneIndex || (this.props.primaryPaneIndex === 0)) {
       // only recalculate pane sizes if the container's size has changed at all
       const oldContainerSize = this.containerSize;
       const newContainerSize = this.getContainerSize();
@@ -197,14 +203,14 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     }
   }
 
-  public calculateSecondaryPaneSizes(oldContainerSize: number, newContainerSize: number): void {
+  calculateSecondaryPaneSizes(oldContainerSize: number, newContainerSize: number): void {
     const containerSizeDelta = newContainerSize - oldContainerSize;
 
     // containerSizeDelta / number of secondary panes
     const secondaryPaneSizeAdjustment = containerSizeDelta / (this.panes.length - 1);
 
     // adjust each of the secondary panes to accomodate for the new container size
-    const currentPaneSizes = this.state.paneSizes;
+    let currentPaneSizes = this.state.paneSizes;
     for (let i = 0; i < currentPaneSizes.length; i++) {
       if (i !== this.props.primaryPaneIndex) {
         currentPaneSizes[i] = currentPaneSizes[i] + secondaryPaneSizeAdjustment;
@@ -213,42 +219,43 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.setState(({ paneSizes: currentPaneSizes }));
   }
 
-  public saveContainerRef = (element: HTMLElement): void => {
+  saveContainerRef = (element: HTMLElement): void => {
     this.containerRef = element;
   }
 
-  public saveSplitterRef = (element: HTMLDivElement, index: number): void => {
+  saveSplitterRef = (element: HTMLDivElement, index: number): void => {
     if (!this.splitters[index]) {
-      this.splitters[index] = { ref: null, dimensions: null };
+      this.splitters[index] = {};
     }
     this.splitters[index].ref = element;
   }
 
-  public savePaneRef = (element: SplitterPane, index: number): void => {
+  savePaneRef = (element: SplitterPane, index: number): void => {
     if (!this.panes[index]) {
-      this.panes[index] = { size: null, ref: null};
+      this.panes[index] = {};
     }
-    this.panes[index].ref = ReactDom.findDOMNode(element) as HTMLDivElement;
+    this.panes[index].ref = ReactDom.findDOMNode(element) as Element;
   }
 
-  public onGrabSplitter(_e: any, splitterIndex: number): void {
+  onGrabSplitter = (_e: any, splitterIndex: number): void => {
     clearSelection();
     // cache splitter dimensions
     this.splitters[splitterIndex].dimensions = this.splitters[splitterIndex].ref.getBoundingClientRect();
+    this.activeSplitter = splitterIndex;
     // cache container size
     this.containerSize = this.getContainerSize();
-    this.setState(({ resizing: true, activeSplitter: splitterIndex }));
+    this.setState(({ resizing: true }));
   }
 
-  public onMouseMove(e: any): void {
+  onMouseMove(e: MouseEvent): void {
     if (this.state.resizing) {
-      document.dispatchEvent(splitterResizeEvent);
-      this.calculatePaneSizes(this.state.activeSplitter, e);
+      document.dispatchEvent(event);
+      this.calculatePaneSizes(this.activeSplitter, e);
       clearSelection();
     }
   }
 
-  public calculatePaneSizes(splitterIndex: number, e: MouseEvent): void {
+  calculatePaneSizes(splitterIndex: number, e: MouseEvent): void {
     // get dimensions of both panes and the splitter
     const pane1Index = splitterIndex;
     const pane2Index = splitterIndex + 1;
@@ -258,44 +265,45 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
 
     // the primary pane's size will be the difference between the top (horizontal) or left (vertical) of the pane,
     // and the mouse's Y (horizontal) or X (vertical) position
-    const { minSizes } = this.props;
-    const splitterIsHorizontal = this.props.orientation === 'horizontal';
-    const getHorizontalPrimarySize = () => {
+    const {minSizes} = this.props;
+    const condition1 = this.props.orientation === 'horizontal';
+    const rightEval1 = () => {
       return (this.panes[pane1Index].size = Math.max((e.clientY - pane1Dimensions.top),
         minSizes[pane1Index] || MIN_PANE_SIZE));
     };
-    const getVerticalPrimarySize = () => {
+    const leftEval1 = () => {
       return (this.panes[pane1Index].size = Math.max((e.clientX - pane1Dimensions.left),
         minSizes[pane1Index] || MIN_PANE_SIZE));
     };
-    let primarySize = splitterIsHorizontal ? getHorizontalPrimarySize() : getVerticalPrimarySize();
+    let primarySize = condition1 ? rightEval1() : leftEval1();
 
     // the local container size will be the sum of the heights (horizontal)
     // or widths (vertical) of both panes and the splitter
-    const localContainerSize = splitterIsHorizontal ?
+    const localContainerSize = this.props.orientation === 'horizontal' ?
       pane1Dimensions.height + pane2Dimensions.height + splitterDimensions.height
       :
       pane1Dimensions.width + pane2Dimensions.width + splitterDimensions.width;
 
     // bound the bottom (horizontal) or right (vertical) of the primary pane to the bottom or right of the container
-    const splitterSize = splitterIsHorizontal ? splitterDimensions.height : splitterDimensions.width;
+    const splitterSize = this.props.orientation === 'horizontal' ? splitterDimensions.height : splitterDimensions.width;
     if ((primarySize + splitterSize) > localContainerSize) {
       primarySize = localContainerSize - splitterSize;
     }
 
     // the secondary pane's size will be the remaining height (horizontal) or width (vertical)
     // left in the container after subtracting the size of the splitter and primary pane from the total size
-    const getHorizontalSecondarySize = () => {
+    const condition2 = this.props.orientation === 'horizontal';
+    const leftEval2 = () => {
       return (this.panes[pane2Index].size = Math.max((localContainerSize - primarySize - splitterDimensions.height),
         this.props.minSizes[pane2Index] || MIN_PANE_SIZE));
     };
-    const getVerticalSecondarySize = () => {
+    const rightEval2 = () => {
       return (this.panes[pane2Index].size = Math.max((localContainerSize - primarySize - splitterDimensions.width),
         this.props.minSizes[pane2Index] || MIN_PANE_SIZE));
     };
-    const secondarySize = splitterIsHorizontal ? getHorizontalSecondarySize() : getVerticalSecondarySize();
+    const secondarySize = condition2 ? leftEval2() : rightEval2();
 
-    const currentPaneSizes = this.state.paneSizes;
+    let currentPaneSizes = this.state.paneSizes;
     currentPaneSizes[pane1Index] = primarySize;
     currentPaneSizes[pane2Index] = secondarySize;
     if (this.props.onSizeChange) {
@@ -309,12 +317,13 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
     this.setState(({ paneSizes: currentPaneSizes }));
   }
 
-  public onMouseUp(): void {
+  onMouseUp(): void {
     // stop resizing
     this.setState(({ resizing: false }));
   }
 
-  public render(): JSX.Element {
+  render(): JSX.Element {
+    console.log(`[${this.props.id}]: RENDER`);
     // jam a splitter handle inbetween each pair of children
     const splitChildren = [];
     this.paneNum = this.splitNum = 0;
@@ -327,7 +336,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
 
       // add a pane
       if (!this.panes[paneIndex]) {
-        this.panes[paneIndex] = { ref: null, size: null };
+        this.panes[paneIndex] = {};
       }
       this.panes[paneIndex].size = this.state.paneSizes[paneIndex] || DEFAULT_PANE_SIZE;
       const pane = <SplitterPane key={ `pane${paneIndex}` } orientation={ this.props.orientation }
@@ -339,7 +348,7 @@ export class Splitter extends React.Component<SplitterProps, SplitterState> {
       if (this.props.children[index + 1]) {
         // record which panes this splitter controls
         if (!this.splitters[splitIndex]) {
-          this.splitters[splitIndex] = { ref: null, dimensions: null };
+          this.splitters[splitIndex] = {};
         }
 
         const splitterCss = this.props.orientation === 'horizontal' ?
